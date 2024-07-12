@@ -147,6 +147,10 @@ def view_data(site_id):
             return Response(response_html, mimetype='text/html')
         else:
             return "No data found."
+        
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

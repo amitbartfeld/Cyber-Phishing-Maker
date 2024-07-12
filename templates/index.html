@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/css/style.css">
     <title>Phishing Maker</title>
 </head>
 <body>
+    <div class="center">
+    <div>
     <h1>Phishing Maker Project</h1>
     <form method="POST">
-        <label for="url">Enter URL to Duplicate:</label>
-        <input type="text" id="url" name="url" required>
-        <button type="submit">Duplicate</button>
+        <label for="url" class="url-label">Enter URL to Duplicate:</label><br>
+        <input type="text" id="url" name="url" class="url" required><br>
+        <button type="submit" class="submit-button">Duplicate</button>
     </form>
+    </div>
+    </div>
+    <div class="credits" style="text-align: center; margin-top: -5%;"><a href="/about">&copy; Created by Amit Bartfeld & Orel Pashayev - To rise phishing awareness | Click here for more information</a></div>
 </body>
 </html>
