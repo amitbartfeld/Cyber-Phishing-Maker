@@ -124,6 +124,9 @@ def handle_submit(site_id):
             <p>Your submitted data: {data}</p>
             <p><a href='/data/{site_id}'>View Collected Data</a></p>
             <p>Please delete your data if it's real and take necessary precautions.</p>
+            <p style="color: red">If you've enterd a credit card details - block it as fast as possible.</p>
+            <p style="color: red">If you've enterd a password - reset it as fast as possible.</p>
+            <p><b>Stay safe on the internet. Be aware of phishing sites.</b></p>
         </div>
     </div>
     """
