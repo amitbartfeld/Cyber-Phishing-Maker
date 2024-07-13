@@ -33,6 +33,11 @@ html, body{
 .submit-button:hover {
     background-color: #2f5571;
 }
+.submit-button:disabled {
+    background-color: #2f55717e;
+    cursor: not-allowed;
+}
+
 .url{
     border-radius: 100px;
     padding: 1px 20px;

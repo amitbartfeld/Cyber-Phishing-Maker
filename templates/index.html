@@ -22,7 +22,7 @@
                 <label for="url" class="url-label">Enter URL to Duplicate:<p id="url-error" class="error"></p>
                     </label><br>
                 <input type="text" id="url" name="url" class="url" placeholder="https://example.com" required><br>
-                <button type="submit" class="submit-button">Duplicate</button>
+                <button type="submit" class="submit-button" id="submit" disabled>Duplicate</button>
             </form>
         </div>
     </div>
@@ -30,12 +30,14 @@
     <script>
         const urlInput = document.getElementById('url');
         const urlError = document.getElementById('url-error');
+        const submitButton = document.getElementById('submit');
 
         urlInput.addEventListener('input', () => {
             const url = urlInput.value;
             const isValid = validateURL(url);
             urlError.textContent = isValid ? '' : 'Invalid URL (URL must include http:// or https://)';
             urlError.style.display = isValid ? 'none' : 'block';
+            submitButton.disabled = !isValid;
         });
 
         function validateURL(url) {
