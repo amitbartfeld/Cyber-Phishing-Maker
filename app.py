@@ -122,7 +122,7 @@ def handle_submit(site_id):
         <div>
             <h1>You have been phished!</h1>
             <p>Your submitted data: {data}</p>
-            <p><a href='/data/{site_id}'>View Collected Data</a></p>
+            <p><a href='/data/{site_id}'><button class="submit-button">View Collected Data</button></a></p>
             <p>Please delete your data if it's real and take necessary precautions.</p>
             <p style="color: red">If you've enterd a credit card details - block it as fast as possible.</p>
             <p style="color: red">If you've enterd a password - reset it as fast as possible.</p>
