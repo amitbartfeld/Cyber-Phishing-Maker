@@ -117,10 +117,15 @@ def handle_submit(site_id):
         json.dump(data_list, file, ensure_ascii=False)
     
     return f"""
-    <h1>You have been phished!</h1>
-    <p>Your submitted data: {data}</p>
-    <p><a href='/data/{site_id}'>View Collected Data</a></p>
-    <p>Please delete your data if it's real and take necessary precautions.</p>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <div class="center">
+        <div>
+            <h1>You have been phished!</h1>
+            <p>Your submitted data: {data}</p>
+            <p><a href='/data/{site_id}'>View Collected Data</a></p>
+            <p>Please delete your data if it's real and take necessary precautions.</p>
+        </div>
+    </div>
     """
 
 @app.route('/data/<int:site_id>', methods=['GET', 'POST'])
@@ -140,9 +145,9 @@ def view_data(site_id):
         if os.path.exists(data_file):
             with open(data_file, 'r', encoding='utf-8') as file:
                 data_list = json.load(file)
-            response_html = "<h1>Collected Data</h1><ul>"
+            response_html = '<link rel="stylesheet" href="/static/css/style.css"> <h1>Collected Data</h1><ul>'
             for i, data in enumerate(data_list):
-                response_html += f"<li>{data} <form method='POST' style='display:inline;'><input type='hidden' name='data_index' value='{i}'><button type='submit'>Delete</button></form></li>"
+                response_html += f"<li>{data} <form method='POST' style='display:inline;'><input type='hidden' name='data_index' value='{i}'><button class='submit-button' type='submit'>Delete</button></form></li>"
             response_html += "</ul>"
             return Response(response_html, mimetype='text/html')
         else:

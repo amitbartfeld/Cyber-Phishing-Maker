@@ -1,22 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/style.css">
     <title>Phishing Maker</title>
 </head>
+
 <body>
     <div class="center">
-    <div>
-    <h1>Phishing Maker Project</h1>
-    <form method="POST">
-        <label for="url" class="url-label">Enter URL to Duplicate:</label><br>
-        <input type="text" id="url" name="url" class="url" required><br>
-        <button type="submit" class="submit-button">Duplicate</button>
-    </form>
+        <div>
+            <h1>Phishing Site Maker</h1>
+            <div class="info-box">
+            <p>Enter a URL of any website you can think of and it will be duplicated in less then 10 seconds.<br>
+            <span style="color: red; font-weight: bold;">That's how easy it is to create phishing sites.</span><br>
+            We hope this project will help spread awareness for phishing and will help people to protect themselves. <br><b>Thank you for using our project.</b></p>
+            </div>
+            <form method="POST">
+
+                <label for="url" class="url-label">Enter URL to Duplicate:<p id="url-error" class="error"></p>
+                    </label><br>
+                <input type="text" id="url" name="url" class="url" placeholder="https://example.com" required><br>
+                <button type="submit" class="submit-button">Duplicate</button>
+            </form>
+        </div>
     </div>
-    </div>
-    <div class="credits" style="text-align: center; margin-top: -5%;"><a href="/about">&copy; Created by Amit Bartfeld & Orel Pashayev - To rise phishing awareness | Click here for more information</a></div>
+    <div class="credits" style="text-align: center; margin-top: -45px;"><a href="/about">&copy; Created by Amit Bartfeld & Orel Pashayev - To rise phishing awareness | Click here for more information</a></div>
+    <script>
+        const urlInput = document.getElementById('url');
+        const urlError = document.getElementById('url-error');
+
+        urlInput.addEventListener('input', () => {
+            const url = urlInput.value;
+            const isValid = validateURL(url);
+            urlError.textContent = isValid ? '' : 'Invalid URL (URL must include http:// or https://)';
+            urlError.style.display = isValid ? 'none' : 'block';
+        });
+
+        function validateURL(url) {
+            const urlObject = url.toLowerCase();
+            const hostnameParts = urlObject.split('.');
+
+            if (hostnameParts.length < 2 || hostnameParts[0].length < 1 || hostnameParts[1].length < 2) {
+                return false;
+            }
+            if (!/^https?:\/\//.test(urlObject)) {
+                return false;
+            }
+
+            return true;
+        }
+
+
+
+
+    </script>
 </body>
+
 </html>
