@@ -31,13 +31,24 @@ def copy_resources(soup, base_url, target_dir):
         attr = 'href' if tag.name == 'link' else 'src'
         if tag.has_attr(attr):
             resource_url = tag[attr]
-            if resource_url.startswith(('http', 'https')):
+            
+            if not resource_url.startswith(('http', 'https')):
+                resource_url = requests.compat.urljoin(base_url, resource_url)
+            
+            try:
                 resource_content = requests.get(resource_url).content
-                resource_path = os.path.join(static_dir, os.path.basename(resource_url))
+                resource_name = os.path.basename(resource_url.split('?')[0])  # Avoid query strings
+                resource_path = os.path.join(static_dir, resource_name)
+                
                 with open(resource_path, 'wb') as f:
                     f.write(resource_content)
-                tag[attr] = url_for('serve_static_file', site_id=os.path.basename(target_dir), filename=os.path.basename(resource_url))
-    
+                
+                # Update the tag attribute to point to the local static file
+                tag[attr] = url_for('serve_static_file', site_id=os.path.basename(target_dir), filename=resource_name)
+            
+            except Exception as e:
+                print(f"Failed to copy resource: {resource_url} - Error: {e}")
+
     with open(os.path.join(target_dir, 'index.html'), 'w', encoding='utf-8') as file:
         file.write(soup.prettify())
 
