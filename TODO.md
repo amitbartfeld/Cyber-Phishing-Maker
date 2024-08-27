@@ -6,4 +6,6 @@
 - Check why the app isn't coping all the sites, copies only simple sites. (Bank, sqlbolt etc').
 -- fixed the scraping of basic websites such as sqlbolt, but bank still isn't working.
 
+- check why we get this error: "Failed to copy resource: https://www.instagram.com/?hl=pt - Error: [Errno 21] Is a directory: '/Users/orelpashayev/Visual-Workspace/CyberB/Cyber-Phishing-Maker/generated_sites/10/static/'"
+
 - Upload the files and the code to the server.
