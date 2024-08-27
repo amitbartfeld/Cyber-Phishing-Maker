@@ -82,11 +82,18 @@ def index_get():
 @app.route('/', methods = ['POST'])
 def index_post():
     url = request.form['url']
-    site_id = len(os.listdir(os.path.join(BASE_DIR, 'generated_sites')))
-    target_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
+    
+    generated_sites_dir = os.path.join(BASE_DIR, 'generated_sites')
+    if not os.path.exists(generated_sites_dir):
+        os.makedirs(generated_sites_dir)
+    
+    site_id = len(os.listdir(generated_sites_dir))
+    target_dir = os.path.join(generated_sites_dir, str(site_id))
+    
     data_dir = os.path.join(target_dir, 'data')
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
+        
     soup = scrape_website(url)
     copy_resources(soup, url, target_dir)
     add_phishing_form(soup, target_dir, site_id)
