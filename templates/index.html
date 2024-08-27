@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/static/css/style.css">
-    <title>Phishing Maker</title>
+    <title>Phishing Site Maker - Made by Amit and Orel</title>
 </head>
 
 <body>
@@ -54,7 +54,13 @@
             return true;
         }
 
-
+        // Disable button after click release
+        submitButton.addEventListener('mouseup', (event) => {
+            // wait 0.5 seconds before disabling button
+            setTimeout(() => {
+                submitButton.disabled = true;
+            }, 100);
+        });
 
 
     </script>
