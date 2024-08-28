@@ -10,9 +10,14 @@ app = Flask(__name__)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def scrape_website(url):
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-    return soup
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'html.parser')
+        return soup
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to scrape website: {url} - Error: {e}")
+        return None
 
 def copy_resources(soup, base_url, target_dir):
     if not os.path.exists(target_dir):
@@ -33,7 +38,14 @@ def copy_resources(soup, base_url, target_dir):
             try:
                 resource_content = requests.get(resource_url).content
                 resource_name = os.path.basename(resource_url.split('?')[0])  # Avoid query strings
+                
+                if not resource_name:  # Check if the basename is empty
+                    continue
+                
                 resource_path = os.path.join(static_dir, resource_name)
+                
+                if os.path.isdir(resource_path):  # Check if the resolved path is a directory
+                    continue
                 
                 with open(resource_path, 'wb') as f:
                     f.write(resource_content)
@@ -101,52 +113,15 @@ def index_post():
         os.makedirs(data_dir)
         
     soup = scrape_website(url)
+    if soup is None:
+        return render_template('index.html', error="Failed to scrape the website. Please check the URL and try again.")
     copy_resources(soup, url, target_dir)
     add_phishing_form(soup, target_dir, site_id)
     return redirect(url_for('view_generated_site', site_id=site_id))
 
 @app.route('/site/<int:site_id>')
 def view_generated_site(site_id):
-    icon_code = '''
-<div id="phishing-icon" title="Beware - This is a phishing site. Click here for more information.">
-<div id="phishing-icon-container">
-  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" alt="Phishing Icon" id="phishing-icon" ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M12 15H12.01M12 12V9M4.98207 19H19.0179C20.5615 19 21.5233 17.3256 20.7455 15.9923L13.7276 3.96153C12.9558 2.63852 11.0442 2.63852 10.2724 3.96153L3.25452 15.9923C2.47675 17.3256 3.43849 19 4.98207 19Z" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
-  </div>
-</div>
-<script>
-  document.getElementById('phishing-icon').addEventListener('click', function() {
-    window.location.href = '/about';
-  });
-</script>
-<style>
-  #phishing-icon-container {
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 1000;
-    background-color: #fff;
-    border-radius: 100px;
-    height: 25px;
-    width: 25px;
-  }
-  #phishing-icon {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-    text-align: center;
-  }
-  #phishing-icon:hover::after {
-    content: attr(title);
-    position: absolute;
-    top: 25px;
-    right: 30px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    padding: 5px;
-    font-size: 12px;
-  }
-</style>
-'''
+    icon_code = render_template('icon_code.html')   
     with open(os.path.join(BASE_DIR, 'generated_sites', str(site_id), 'index.html'), 'r', encoding='utf-8') as file:
         html = file.read() + icon_code
     return html
