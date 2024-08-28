@@ -1,5 +1,7 @@
 # **Phishing Site Maker - Educational Tool**
 
+[![Cyber-Phishing-Maker](https://socialify.git.ci/amitbartfeld/Cyber-Phishing-Maker/image?description=1&font=Rokkitt&language=1&name=1&owner=1&pattern=Signal&theme=Auto)](https://github.com/amitbartfeld/Cyber-Phishing-Maker)
+
 ## **Purpose:**
 
 This project serves as an educational tool to raise awareness about phishing scams. It demonstrates how easily malicious actors can create deceptive replicas of legitimate websites to steal sensitive information.
